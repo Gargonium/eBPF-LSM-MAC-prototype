@@ -1,10 +1,9 @@
 #include "vmlinux.h"
 #include <bpf/bpf_helpers.h>
 #include <bpf/bpf_endian.h>
-#include <bpf/bpf_tracing.h>   // для BPF_PROG
-#include <bpf/bpf_core_read.h> // для bpf_probe_read_kernel
+#include <bpf/bpf_tracing.h>   
+#include <bpf/bpf_core_read.h> 
 
-// На случай, если EPERM не определён в vmlinux.h
 #ifndef EPERM
 #define EPERM 1
 #endif
@@ -13,7 +12,6 @@
 #define AF_INET 2
 #endif
 
-// Карты
 struct {
     __uint(type, BPF_MAP_TYPE_HASH);
     __uint(max_entries, 256);
@@ -31,24 +29,22 @@ struct {
 SEC("lsm/socket_connect")
 int BPF_PROG(socket_connect, struct socket *sock, struct sockaddr *address, int addrlen)
 {
-    // Проверяем семейство адресов (AF_INET определено в vmlinux.h)
     if (address->sa_family != AF_INET)
-        return 0;   // разрешить всё, что не IPv4
+        return 0;  
 
     struct sockaddr_in *addr_in = (struct sockaddr_in *)address;
     __u32 dst_ip = 0;
     __u16 dst_port = 0;
 
-    // Безопасное чтение из ядерной памяти
     bpf_probe_read_kernel(&dst_ip, sizeof(dst_ip), &addr_in->sin_addr.s_addr);
     bpf_probe_read_kernel(&dst_port, sizeof(dst_port), &addr_in->sin_port);
 
     if (bpf_map_lookup_elem(&blocked_ip_map, &dst_ip))
-        return -EPERM;   // отказ
+        return -EPERM;  
     if (bpf_map_lookup_elem(&blocked_port_map, &dst_port))
         return -EPERM;
 
-    return 0;   // разрешить
+    return 0;  
 }
 
 char LICENSE[] SEC("license") = "GPL";
