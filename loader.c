@@ -16,14 +16,12 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    // Открываем cgroup (нужен файловый дескриптор)
     cgroup_fd = open(argv[1], O_DIRECTORY | O_RDONLY);
     if (cgroup_fd < 0) {
         perror("open cgroup");
         return 1;
     }
 
-    // Загружаем eBPF-программу и карты
     skel = block_connect_bpf__open_and_load();
     if (!skel) {
         fprintf(stderr, "Failed to load BPF skeleton\n");
@@ -31,7 +29,6 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    // Явно прикрепляем программу к cgroup
     struct bpf_program *prog = skel->progs.block_connect;
     struct bpf_link *link = bpf_program__attach_cgroup(prog, cgroup_fd);
     if (libbpf_get_error(link)) {
@@ -41,7 +38,6 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    // Наполняем карты переданными IP/портами (как и раньше)
     for (int i = 2; i < argc; i++) {
         struct in_addr ip;
         if (inet_pton(AF_INET, argv[i], &ip) == 1) {
@@ -65,7 +61,6 @@ int main(int argc, char **argv)
     printf("eBPF program attached to cgroup %s. Press Ctrl-C to exit.\n", argv[1]);
     while (1) sleep(1);
 
-    // Корректное завершение (недостижимо, но оставим для порядка)
     bpf_link__destroy(link);
     block_connect_bpf__destroy(skel);
     close(cgroup_fd);
