@@ -25,7 +25,6 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    // Заполнение карт
     for (int i = 1; i < argc; i++) {
         struct in_addr ip;
         if (inet_pton(AF_INET, argv[i], &ip) == 1) {
